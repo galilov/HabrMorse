@@ -110,7 +110,7 @@ class MorseProcessor {
                         || (isLast(i, codes) && isNotSpace(i, codes))
                         // or the code is not the first or last and the current or next code is not a
                         // space
-                        || (isNotFirstOrLast(i, codes) && currentOrNextAreNotSpace(i, codes)))
+                        || (isNotFirstAndNotLast(i, codes) && currentOrNextAreNotSpace(i, codes)))
                 // convert the codes to a stream of strings
                 .mapToObj(codes::get)
                 // join the codes with a '|' character and return the result
@@ -140,13 +140,13 @@ class MorseProcessor {
     }
 
     /**
-     * Check if the morse code is not the first or last in the list
+     * Check if the morse code is not the first and not the last in the list
      *
      * @param i     the index of the code
      * @param codes the list of morse codes
      * @return true if the code is not the first or last, false otherwise
      */
-    private static boolean isNotFirstOrLast(int i, List<String> codes) {
+    private static boolean isNotFirstAndNotLast(int i, List<String> codes) {
         return i > 0 && i < codes.size() - 1;
     }
 
@@ -158,7 +158,7 @@ class MorseProcessor {
      * @return true if the current or next code is not a space, false otherwise
      */
     private static boolean currentOrNextAreNotSpace(int i, List<String> codes) {
-        return !(codes.get(i).equals(" ") && codes.get(i + 1).equals(" "));
+        return !codes.get(i).equals(" ") || !codes.get(i + 1).equals(" ");
     }
 
     /**
