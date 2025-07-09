@@ -27,15 +27,16 @@ class MorseProcessorTest {
 
     @Test
     void textToMorse() {
-        String expected = "....|.|.-..|.-..|---| |.-|.-..|.-..";
-        assertEquals(expected, mp.textToMorse(" Hello all"));
-        assertEquals(expected, mp.textToMorse("Hello all"));
-        assertEquals(expected, mp.textToMorse("Hello  all"));
-        assertEquals(expected, mp.textToMorse(" Hello  all "));
-        assertEquals(expected, mp.textToMorse("Hello all "));
-        assertEquals(expected, mp.textToMorse("Hello   all  "));
-        assertEquals(expected, mp.textToMorse("Hello   all"));
-        assertEquals(expected, mp.textToMorse("Hello   all "));
-        assertEquals(expected, mp.textToMorse("Hello   all  "));
+        final String moreCode = "....|.|.-..|.-..|---| |.-|.-..|.-..";
+        assertEquals(moreCode, mp.textToMorse(" Hello all"));
+        assertEquals(moreCode, mp.textToMorse("Hello all"));
+        assertEquals(moreCode, mp.textToMorse("Hello  all"));
+        assertEquals(moreCode, mp.textToMorse(" Hello  all "));
+        assertEquals(moreCode, mp.textToMorse("Hello all "));
+        assertEquals(moreCode, mp.textToMorse("Hello   all  "));
+        assertEquals(moreCode, mp.textToMorse("Hello   all"));
+        assertEquals(moreCode, mp.textToMorse("Hello   all "));
+        assertEquals(moreCode, mp.textToMorse("Hello   all  "));
+        assertNotEquals(moreCode, mp.textToMorse("Hel lo   all  "));
     }
 }

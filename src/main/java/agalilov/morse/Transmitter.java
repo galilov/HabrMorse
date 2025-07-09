@@ -5,7 +5,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 /**
  * Transmitter class for transmitting morse code to the audio system.
@@ -26,7 +25,7 @@ class Transmitter {
 
     private final byte[] dotWave; // 1 dot duration
     private final byte[] dashWave; // 3 dots duration
-    private final byte[] spaceWave; // 3 spaces duration
+    private final byte[] spaceWave; // 1 dot duration
     private static final char dot = '.'; // dot character
     private static final char dash = '-'; // dash character
     private static final char shortSpace = '|'; // short space character
@@ -52,7 +51,7 @@ class Transmitter {
      * @param morseEncoded the morse encoded string
      */
     void transmit(String morseEncoded) {
-        // convert morse encoded string to byte array
+        // convert Morse encoded string to byte array
         byte[] outputData = morseEncoded
                 .chars() // convert to stream of characters(=ints)
                 .mapToObj( // maps each character to a byte array
@@ -64,13 +63,13 @@ class Transmitter {
                                 // return the dash wave and the space wave (zeroes)
                                 return concatArrays(dashWave, spaceWave);
                             if (shortSpace == c) // if the character is a short space (|)
-                                // return the space (zeroes) 2 times
-                                return concatArrays(spaceWave, spaceWave);
-                            else // if the character is a space between words ( )
-                                 // return the space (zeroes) 3 times
+                                // return the space (zeroes) 3 times
                                 return concatArrays(spaceWave, spaceWave, spaceWave);
+                            else // if the character is a space between words ( )
+                                 // return the space (zeroes) 7 times
+                                return concatArrays(spaceWave, spaceWave, spaceWave, spaceWave, spaceWave, spaceWave, spaceWave);
                         })
-                .collect(Collectors.toList()) // collect the byte arrays into a list of byte arrays
+                .toList() // collect the byte arrays into a list of byte arrays
                 .stream() // convert the list of byte arrays to a stream of byte arrays
                 .reduce(new byte[0], this::concatArrays); // reduce the stream of byte arrays to a single byte array
 
@@ -121,6 +120,8 @@ class Transmitter {
      * @throws InterruptedException     if the thread is interrupted
      */
     private void transmitData(byte[] outputData) throws LineUnavailableException, IOException, InterruptedException {
+        if (outputData == null || outputData.length == 0)
+            return;
         // if the clip is not null, stop and close it
         if (clip != null) {
             clip.stop();
@@ -187,28 +188,30 @@ class Transmitter {
     private static byte[] generateSineWave(double durationMilliseconds) {
         // get the number of samples
         int len = getNumOfSamples(durationMilliseconds);
+        // align len to fit the wave period to avoid sound distortion at the end of the
+        // wave
+        len = len - (len % (SAMPLE_RATE / FREQ));
         // create a new byte array with the number of samples
         byte[] result = new byte[len];
         // calculate the phase delta for the sine wave
         final double delta = 2 * Math.PI * FREQ / SAMPLE_RATE;
-        // initialize the phase
-        double phase = 0;
+        // initialize the angle
+        double angle = 0;
         // generate the sine wave
         for (int n = 0; n < len; n++) {
             // calculate the value of the sine wave sample
-            result[n] = (byte) (Byte.MAX_VALUE * Math.sin(phase));
-            // increment the phase
-            phase += delta;
+            result[n] = (byte) (Byte.MAX_VALUE * Math.sin(angle));
+            // increment the angle
+            angle += delta;
         }
         // return the result
         return result;
     }
 
-    /*
+    /**
      * Get the number of samples for a given duration
      *
      * @param durationMilliseconds the duration in milliseconds
-     *
      * @return the number of samples
      */
     private static int getNumOfSamples(double durationMilliseconds) {
