@@ -6,7 +6,6 @@ import java.util.logging.Logger;
  * Main class for the morse code transmitter.
  */
 public class Main {
-    private static final Logger logger = Logger.getLogger(Main.class.getSimpleName());
 
     /**
      * Main method
