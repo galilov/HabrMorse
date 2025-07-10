@@ -1,7 +1,5 @@
 package agalilov.morse;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.logging.Logger;
 
 /**
@@ -25,7 +23,7 @@ public class Main {
         // convert the text to morse code
         String morse = mp.textToMorse(String.join(" ", args));
         // log the morse code
-        logger.info("Morse code: " + morse);
+        System.out.println("Morse code: " + morse);
         // create a new Transmitter
         Transmitter transmitter = new Transmitter();
         transmitter.transmit(morse);

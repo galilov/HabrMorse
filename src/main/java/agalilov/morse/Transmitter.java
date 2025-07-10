@@ -2,7 +2,9 @@ package agalilov.morse;
 
 import javax.sound.sampled.*;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.function.IntConsumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -11,7 +13,7 @@ import java.util.logging.Logger;
  */
 class Transmitter {
 
-    private static final int SPEED = 40; // words per second
+    private static final int SPEED = 20; // words per second
     private static final int FREQ = 800; // Hertz
     private static final int SAMPLE_RATE = 22050; // samples per second
     /*
@@ -21,28 +23,76 @@ class Transmitter {
      * dotDurationMilliseconds = 1200.0 / SPEED
      * https://en.wikipedia.org/wiki/Morse_code
      */
-    private static final double DOT_DURATION_MILLISECONDS = 1200.0 / SPEED;
-
-    private final byte[] dotWave; // 1 dot duration
-    private final byte[] dashWave; // 3 dots duration
-    private final byte[] spaceWave; // 1 dot duration
-    private static final char dot = '.'; // dot character
-    private static final char dash = '-'; // dash character
-    private static final char shortSpace = '|'; // short space character
-
+    private static final float DOT_DURATION_MILLISECONDS = 1200.0f / SPEED;
     private final static Logger logger = Logger.getLogger(Transmitter.class.getSimpleName());
 
     // clip for playing the sound
     private Clip clip;
 
     /**
-     * Constructor
+     * Generate a sine wave
+     *
+     * @param durationMilliseconds the duration in milliseconds
+     * @return the sine wave data
      */
-    Transmitter() {
-        // generate waves for dot, dash and space
-        dotWave = generateSineWave(DOT_DURATION_MILLISECONDS);
-        dashWave = generateSineWave(DOT_DURATION_MILLISECONDS * 3);
-        spaceWave = generatePause(DOT_DURATION_MILLISECONDS);
+    private static byte[] generateSineWave(float durationMilliseconds) {
+        // get the number of samples
+        int len = getNumOfSamples(durationMilliseconds);
+        // align len to fit the wave period to avoid sound distortion at the end of the
+        // wave
+        len = len - (len % (SAMPLE_RATE / FREQ));
+        // create a new byte array with the number of samples
+        byte[] result = new byte[len];
+        // calculate the phase delta for the sine wave
+        final double delta = 2 * Math.PI * FREQ / SAMPLE_RATE;
+        // initialize the angle
+        double angle = 0;
+        // generate the sine wave
+        for (int n = 0; n < len; n++) {
+            // calculate the value of the sine wave sample
+            result[n] = (byte) (Byte.MAX_VALUE * Math.sin(angle));
+            // increment the angle
+            angle += delta;
+        }
+        // return the result
+        return result;
+    }
+
+    private static void generateSineWave(float durationMilliseconds, IntConsumer consumer) {
+        // get the number of samples
+        int len = getNumOfSamples(durationMilliseconds);
+        // align len to fit the wave period to avoid sound distortion at the end of the
+        // wave
+        len = len - (len % (SAMPLE_RATE / FREQ));
+        // create a new byte array with the number of samples
+        // calculate the phase delta for the sine wave
+        final double delta = 2 * Math.PI * FREQ / SAMPLE_RATE;
+        // initialize the angle
+        double angle = 0;
+        // generate the sine wave
+        for (int n = 0; n < len; n++) {
+            // calculate the value of the sine wave sample
+            consumer.accept((int) (Byte.MAX_VALUE * Math.sin(angle)));
+            // increment the angle
+            angle += delta;
+        }
+    }
+
+    /**
+     * Get the number of samples for a given duration
+     *
+     * @param durationMilliseconds the duration in milliseconds
+     * @return the number of samples
+     */
+    private static int getNumOfSamples(float durationMilliseconds) {
+        return (int) Math.round(SAMPLE_RATE * durationMilliseconds / 1000.0);
+    }
+
+    private static void generatePause(float durationMilliseconds, IntConsumer consumer) {
+        int len = getNumOfSamples(durationMilliseconds);
+        for (int i = 0; i < len; i++) {
+            consumer.accept(0);
+        }
     }
 
     /**
@@ -52,63 +102,57 @@ class Transmitter {
      */
     void transmit(String morseEncoded) {
         // convert Morse encoded string to byte array
-        byte[] outputData = morseEncoded
+        byte[] soundData = morseEncoded
                 .chars() // convert to stream of characters(=ints)
-                .mapToObj( // maps each character to a byte array
-                        c -> {
-                            if (dot == c) // if the character is a dot (.)
-                                // return the dot wave and the space wave (zeroes)
-                                return concatArrays(dotWave, spaceWave);
-                            if (dash == c) // if the character is a dash (-)
-                                // return the dash wave and the space wave (zeroes)
-                                return concatArrays(dashWave, spaceWave);
-                            if (shortSpace == c) // if the character is a short space (|)
-                                // return the space (zeroes) 3 times
-                                return concatArrays(spaceWave, spaceWave, spaceWave);
-                            else // if the character is a space between words ( )
-                                 // return the space (zeroes) 7 times
-                                return concatArrays(spaceWave, spaceWave, spaceWave, spaceWave, spaceWave, spaceWave, spaceWave);
-                        })
-                .toList() // collect the byte arrays into a list of byte arrays
-                .stream() // convert the list of byte arrays to a stream of byte arrays
-                .reduce(new byte[0], this::concatArrays); // reduce the stream of byte arrays to a single byte array
+                .mapMulti(
+                        (c, consumer) -> {
+                            switch (c) {
+                                case '.':
+                                    // generate the dot wave and the space wave (zeroes)
+                                    generateSineWave(DOT_DURATION_MILLISECONDS, consumer);
+                                    generatePause(DOT_DURATION_MILLISECONDS, consumer);
+                                    break;
+                                case '-':
+                                    // generate the dash wave and the space wave (zeroes)
+                                    generateSineWave(3 * DOT_DURATION_MILLISECONDS, consumer);
+                                    generatePause(DOT_DURATION_MILLISECONDS, consumer);
+                                    break;
+                                case '|':
+                                    // generate the space (zeroes) 2 times (+1 spaceWave comes from the previous dot or dash)
+                                    generatePause(2 * DOT_DURATION_MILLISECONDS, consumer);
+                                    break;
+                                case ' ':
+                                    // generate the long space (zeroes) 6 times (+1 spaceWave comes from the previous dot or dash)
+                                    generatePause(6 * DOT_DURATION_MILLISECONDS, consumer);
+                                    break;
+                                default:
+                                    throw new IllegalArgumentException("Unsupported symbol: " + c);
+
+                            }
+                        }
+                )
+                .collect(
+                        () -> {
+                            return new ByteArrayOutputStream(SAMPLE_RATE);
+                        },
+                        (buf, val) -> {
+                            buf.write(val);
+                        },
+                        (buf1, buf2) -> {
+                            buf1.writeBytes(buf2.toByteArray());
+                        }
+                )
+                .toByteArray();
 
         try {
             // transmit the data
-            transmitData(outputData);
+            transmitData(soundData);
         } catch (LineUnavailableException | IOException | InterruptedException e) {
             // log the error
             logger.log(Level.SEVERE, "Can't play sound", e);
             // throw a runtime exception
             throw new RuntimeException(e);
         }
-    }
-
-    /**
-     * Concatenate arrays
-     *
-     * @param arrays the arrays to concatenate
-     * @return the concatenated array
-     */
-    private byte[] concatArrays(byte[]... arrays) {
-        // calculate the total length of the arrays
-        int totalLength = 0;
-        for (byte[] array : arrays) {
-            totalLength += array.length;
-        }
-        // create a new byte array with the total length of the arrays
-        byte[] result = new byte[totalLength];
-        // initialize the offset
-        int offset = 0;
-        // copy the arrays to the result array
-        for (byte[] array : arrays) {
-            // copy the array to the result array
-            System.arraycopy(array, 0, result, offset, array.length);
-            // increment the offset by the length of the array
-            offset += array.length;
-        }
-        // return the result array
-        return result;
     }
 
     /**
@@ -179,52 +223,4 @@ class Transmitter {
         }
     }
 
-    /**
-     * Generate a sine wave
-     *
-     * @param durationMilliseconds the duration in milliseconds
-     * @return the sine wave data
-     */
-    private static byte[] generateSineWave(double durationMilliseconds) {
-        // get the number of samples
-        int len = getNumOfSamples(durationMilliseconds);
-        // align len to fit the wave period to avoid sound distortion at the end of the
-        // wave
-        len = len - (len % (SAMPLE_RATE / FREQ));
-        // create a new byte array with the number of samples
-        byte[] result = new byte[len];
-        // calculate the phase delta for the sine wave
-        final double delta = 2 * Math.PI * FREQ / SAMPLE_RATE;
-        // initialize the angle
-        double angle = 0;
-        // generate the sine wave
-        for (int n = 0; n < len; n++) {
-            // calculate the value of the sine wave sample
-            result[n] = (byte) (Byte.MAX_VALUE * Math.sin(angle));
-            // increment the angle
-            angle += delta;
-        }
-        // return the result
-        return result;
-    }
-
-    /**
-     * Get the number of samples for a given duration
-     *
-     * @param durationMilliseconds the duration in milliseconds
-     * @return the number of samples
-     */
-    private static int getNumOfSamples(double durationMilliseconds) {
-        return (int) Math.round(SAMPLE_RATE * durationMilliseconds / 1000.0);
-    }
-
-    /**
-     * Generate a pause
-     *
-     * @param durationMilliseconds the duration in milliseconds
-     * @return the pause data (zeroes)
-     */
-    private static byte[] generatePause(double durationMilliseconds) {
-        return new byte[getNumOfSamples(durationMilliseconds)];
-    }
 }
