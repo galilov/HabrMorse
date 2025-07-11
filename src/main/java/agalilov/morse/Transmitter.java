@@ -166,10 +166,10 @@ class Transmitter {
         if (clip != null) {
             clip.stop();
             clip.close();
-        } else {
-            // get the clip
-            clip = AudioSystem.getClip();
         }
+
+        // get the clip
+        clip = AudioSystem.getClip();
 
         // object for synchronization
         Object playSync = new Object();
@@ -185,7 +185,7 @@ class Transmitter {
                 logger.log(Level.INFO, "Data has been transmitted.");
                 // notify all the threads that are waiting for the clip to stop
                 synchronized (playSync) {
-                    playSync.notifyAll();
+                    playSync.notify();
                 }
             }
         };
