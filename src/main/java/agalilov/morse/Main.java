@@ -1,7 +1,5 @@
 package agalilov.morse;
 
-import java.util.logging.Logger;
-
 /**
  * Main class for the morse code transmitter.
  */

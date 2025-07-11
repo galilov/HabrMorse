@@ -32,6 +32,7 @@ class MorseProcessorTest {
         assertEquals(moreCode, mp.textToMorse("Hello all"));
         assertEquals(moreCode, mp.textToMorse("Hello  all"));
         assertEquals(moreCode, mp.textToMorse(" Hello  all "));
+        assertEquals(moreCode, mp.textToMorse(" Hello Ъ all "));
         assertEquals(moreCode, mp.textToMorse("Hello all "));
         assertEquals(moreCode, mp.textToMorse("Hello   all  "));
         assertEquals(moreCode, mp.textToMorse("Hello   all"));

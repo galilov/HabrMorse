@@ -161,7 +161,7 @@ class MorseProcessor {
                         // reserve space for strings
                         return new ArrayList<String>(text.length());
                     },
-                    // Accumulator: Adds strings to the list skipping duplicated spac
+                    // Accumulator: Adds strings to the list skipping duplicated spaces
                     (list, s) -> {
                         if (!s.equals(" ") || (!list.isEmpty() && !list.getLast().equals(" "))) {
                             list.addLast(s);
