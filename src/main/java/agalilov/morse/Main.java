@@ -4,7 +4,19 @@ package agalilov.morse;
  * Main class for the morse code transmitter.
  */
 public class Main {
-
+    private static long signalPower(short[] readData) {
+        long power = 0;
+        long avg = 0;
+        for (var b : readData) {
+            avg += b;
+        }
+        avg /= readData.length;
+        for (var b : readData) {
+            b -= (short)avg;
+            power += (b * b);
+        }
+        return (long)Math.sqrt(power);
+    }
     /**
      * Main method
      *
@@ -24,8 +36,11 @@ public class Main {
 //        // create a new Transmitter
 //        Transmitter transmitter = new Transmitter();
 //        transmitter.transmit(morse);
-        Receiver receiver = new Receiver();
+        SoundRecorder receiver = new SoundRecorder();
         receiver.start();
+        receiver.stream().forEach((data->{
+            System.out.println(signalPower(data));
+        }));
         System.in.read();
         receiver.stop();
     }

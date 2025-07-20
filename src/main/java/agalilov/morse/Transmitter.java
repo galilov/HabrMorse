@@ -139,8 +139,9 @@ class Transmitter {
     void transmit(String morseEncoded) {
         try {
             // transmit the data
-            transmitData(generateSignalImage(morseEncoded));
-        } catch (LineUnavailableException | IOException | InterruptedException e) {
+            SoundPlayer player = new SoundPlayer(SAMPLE_RATE);
+            player.playData(generateSignalImage(morseEncoded));
+        } catch (Exception e) {
             // log the error
             logger.log(Level.SEVERE, "Can't play sound", e);
             // throw a runtime exception
@@ -148,75 +149,6 @@ class Transmitter {
         }
     }
 
-    // clip for playing the sound
-    private Clip clip;
 
-    /**
-     * Transmit the data to the audio system and wait for the clip to stop
-     *
-     * @param outputData the data to transmit
-     * @throws LineUnavailableException if the line is unavailable
-     * @throws IOException              if an I/O error occurs
-     * @throws InterruptedException     if the thread is interrupted
-     */
-    private void transmitData(byte[] outputData) throws LineUnavailableException, IOException, InterruptedException {
-        if (outputData == null || outputData.length == 0)
-            return;
-        // if the clip is not null, stop and close it
-        if (clip != null) {
-            clip.stop();
-            clip.close();
-        }
-
-        // get the clip
-        clip = AudioSystem.getClip();
-
-        // object for synchronization
-        Object playSync = new Object();
-
-        // listener for the line event
-        LineListener listener = event -> {
-            // if the event is a stop event
-            if (event.getType() == LineEvent.Type.STOP) {
-                // stop and close the clip
-                clip.stop();
-                clip.close();
-                clip = null;
-                logger.log(Level.INFO, "Data has been transmitted.");
-                // notify all the threads that are waiting for the clip to stop
-                synchronized (playSync) {
-                    playSync.notify();
-                }
-            }
-        };
-        // add the listener to the clip
-        clip.addLineListener(listener);
-
-        // create the audio format
-        AudioFormat af = new AudioFormat(
-                SAMPLE_RATE, // sample rate
-                8, // bits per sample
-                1, // channels
-                true, // signed
-                false); // big endian
-
-        // create the audio input stream
-        AudioInputStream ais = new AudioInputStream(
-                new ByteArrayInputStream(outputData), // input stream
-                af, // audio format
-                outputData.length); // length of the output data
-
-        // open the clip
-        clip.open(ais);
-        // log the start of the data transmitting
-        logger.log(Level.INFO, "Start data transmitting...");
-        // start the clip
-        clip.start();
-        // wait for the clip to stop
-        synchronized (playSync) {
-            // wait for the clip to stop
-            playSync.wait();
-        }
-    }
 
 }
