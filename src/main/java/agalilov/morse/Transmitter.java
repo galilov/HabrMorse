@@ -24,7 +24,7 @@ class Transmitter {
      * https://en.wikipedia.org/wiki/Morse_code
      */
     private static final float DOT_DURATION_MILLISECONDS = 1200.0f / SPEED;
-    private final static Logger logger = Logger.getLogger(Transmitter.class.getSimpleName());
+    private final Logger logger = Logger.getLogger(Transmitter.class.getSimpleName());
 
 
     /**
